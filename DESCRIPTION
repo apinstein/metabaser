@@ -1,0 +1,12 @@
+Package: metabaser
+Type: Package
+Title: Access the data underlying metabase questions from R.
+Version: 0.1.0
+Author: Alan Pinstein
+Maintainer: Alan Pinstein <apinstein@mac.com>
+Description: Easily pull data used by your Metabase questions in R projects.
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Imports:
+  jsonlite
