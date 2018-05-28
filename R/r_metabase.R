@@ -1,8 +1,3 @@
-## INTERNAL HELPER FUNCTIONS
-mb_url <- function(base_url, path) {
-  paste0(base_url, path, "")
-}
-
 #' Authenticate to Metabase
 #'
 #' Initialize an authenticated session with Metabase.
@@ -16,7 +11,6 @@ mb_url <- function(base_url, path) {
 #' mb_session <- metabase_init(base_url, username)
 #'
 #' @export
-
 metabase_init <- function (base_url, username) {
   if (is.null(session_pw) && exists('.rs.askForPassword')) {
     prompt <- paste("Enter Metabase Password for ", username)
@@ -74,6 +68,19 @@ metabase_fetch_question <- function(metabase_session, id, params = list()) {
                     ),
                     body = credsAsJSON
   );
+  mb_req_error_processor(req)
+
   questionJSON <- httr::content(req,"text")
   questionData <- jsonlite::fromJSON(questionJSON)
+}
+
+## INTERNAL HELPER FUNCTIONS
+mb_url <- function(base_url, path) {
+  paste0(base_url, path, "")
+}
+
+mb_req_error_processor <- function(req) {
+  if (req$status_code != 200) {
+    stop(paste("Request failed:", req$url, " returned: ", req$status_code))
+  }
 }
