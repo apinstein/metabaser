@@ -12,7 +12,7 @@
 #'
 #' @export
 metabase_init <- function (base_url, username) {
-  if (is.null(session_pw) && exists('.rs.askForPassword')) {
+  if ((!exists("session_pw") || is.null(session_pw))&& exists('.rs.askForPassword')) {
     prompt <- paste("Enter Metabase Password for ", username)
     session_pw <- .rs.askForPassword(prompt)
   }
