@@ -1,7 +1,7 @@
 Package: metabaser
 Type: Package
 Title: Access the data underlying metabase questions from R.
-Version: 0.1.1
+Version: 0.1.2
 Author: Alan Pinstein
 Maintainer: Alan Pinstein <apinstein@mac.com>
 Description: Easily pull data used by your Metabase questions in R projects.

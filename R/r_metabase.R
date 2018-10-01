@@ -74,9 +74,7 @@ metabase_fetch_question <- function(metabase_session, id, params = list()) {
                     httr::add_headers(
                       "Content-Type" = "application/json",
                       "X-Metabase-Session" = metabase_session$token
-                    ),
-                    # I think the line below can be deleted
-                    body = credsAsJSON
+                    )
   );
   mb_req_error_processor(req)
 
