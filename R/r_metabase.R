@@ -11,15 +11,15 @@
 #' mb_session <- metabase_init(base_url, username)
 #'
 #' @export
-metabase_init <- function (base_url, username) {
-  if ((!exists("session_pw") || is.null(session_pw))&& exists('.rs.askForPassword')) {
+metabase_init <- function (base_url, username, password = NULL) {
+  if (is.null(password) && exists('.rs.askForPassword')) {
     prompt <- paste("Enter Metabase Password for ", username)
-    session_pw <- .rs.askForPassword(prompt)
+    password <- .rs.askForPassword(prompt)
   }
 
   creds<-list(
     username = username,
-    password = session_pw
+    password = password
   )
   credsAsJSON <- jsonlite::toJSON(creds, auto_unbox=TRUE)
 
@@ -30,12 +30,19 @@ metabase_init <- function (base_url, username) {
                     body = credsAsJSON
   )
 
-  jsonAuthResponse <- httr::content(req, "text")
-  mb_session_token <- toString(jsonlite::fromJSON(jsonAuthResponse))
-  list(
-    base_url = base_url,
-    token = mb_session_token
-  )
+  if (req$status_code >= 200 && req$status_code < 300) {
+    jsonAuthResponse <- httr::content(req, "text")
+    mb_session_token <- toString(jsonlite::fromJSON(jsonAuthResponse))
+
+    # make sure session is legit
+    mb_session <- list(
+      base_url = base_url,
+      token = mb_session_token
+    )
+    return(mb_session)
+  } else {
+    return(NULL)
+  }
 }
 
 #' Fetch the data for a Metabase question.
@@ -54,6 +61,8 @@ metabase_init <- function (base_url, username) {
 #'
 #' @export
 metabase_fetch_question <- function(metabase_session, id, params = list()) {
+  mb_verify_session(metabase_session)
+
   data<-list(
     "ignore_cache" = FALSE,
     "parameters"   = params
@@ -66,6 +75,7 @@ metabase_fetch_question <- function(metabase_session, id, params = list()) {
                       "Content-Type" = "application/json",
                       "X-Metabase-Session" = metabase_session$token
                     ),
+                    # I think the line below can be deleted
                     body = credsAsJSON
   );
   mb_req_error_processor(req)
@@ -82,5 +92,11 @@ mb_url <- function(base_url, path) {
 mb_req_error_processor <- function(req) {
   if (req$status_code != 200) {
     stop(paste("Request failed:", req$url, " returned: ", req$status_code))
+  }
+}
+
+mb_verify_session <- function(metabase_session) {
+  if (is.null(metabase_session)) {
+    stop("Invalid metabase session.")
   }
 }
