@@ -87,7 +87,7 @@ mb_url <- function(base_url, path) {
 }
 
 mb_req_error_processor <- function(req) {
-  if (req$status_code != 200) {
+  if (req$status_code < 200 || req$status_code >= 300) {
     stop(paste("Request failed:", req$url, " returned: ", req$status_code))
   }
 }
