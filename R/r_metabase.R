@@ -21,17 +21,15 @@ metabase_init <- function (base_url, username, password = NULL) {
     username = username,
     password = password
   )
-  credsAsJSON <- jsonlite::toJSON(creds, auto_unbox=TRUE)
+  
+  base_url<-sub("/$","",base_url) #Remove final slash if present metabase can't handle //
 
-  req <- httr::POST(mb_url(base_url, '/api/session'),
-                    httr::add_headers(
-                      "Content-Type" = "application/json"
-                    ),
-                    body = credsAsJSON
-  )
+  req <- httr::POST(mb_url(base_url, '/api/session'),body = creds,encode="json")
 
   if (req$status_code >= 200 && req$status_code < 300) {
-    jsonAuthResponse <- httr::content(req, "text")
+    jsonAuthResponse <- httr::content(req, "text", encoding="UTF-8")
+    #cat(jsonAuthResponse)
+    #return(list(req=req,resp=jsonAuthResponse))
     mb_session_token <- toString(jsonlite::fromJSON(jsonAuthResponse))
 
     # make sure session is legit
@@ -60,25 +58,33 @@ metabase_init <- function (base_url, username, password = NULL) {
 #' metabase_fetch_question(sess, 242, list(customer_id = 4))
 #'
 #' @export
-metabase_fetch_question <- function(metabase_session, id, params = list()) {
+metabase_fetch_question <- function(metabase_session, id, params = list(), tmpdir=FALSE) {
   mb_verify_session(metabase_session)
+  
+  #Example: 'parameters=[{"type":"category","target":["variable",["template-tag","project_id"]],"value":"2559"}]'
 
-  data<-list(
-    "ignore_cache" = FALSE,
-    "parameters"   = params
-  )
-  dataAsJSON <- jsonlite::toJSON(data, auto_unbox=TRUE)
+  param_names<-names(params)
+  param_vals<-unlist(params, use.names=FALSE)
+  data=list()
+  for (i in 1:length(param_names)) {
+    data[[i]]=list("type"="category","target"=list("variable",list("template-tag",param_names[i])),"value"=param_vals[i])
+  }
+  data<-list("parameters"=jsonlite::toJSON(data, auto_unbox = TRUE))
 
   query_url_part = paste0('/api/card/', id, '/query/json', "")
   req <- httr::POST(mb_url(metabase_session$base_url, query_url_part),
-                    httr::add_headers(
-                      "Content-Type" = "application/json",
-                      "X-Metabase-Session" = metabase_session$token
-                    )
-  );
+                    httr::add_headers("X-Metabase-Session" = metabase_session$token, "Content-Type"="application/x-www-form-urlencoded"),
+                    body=data, encode="form")#, httr::verbose())
   mb_req_error_processor(req)
 
   questionJSON <- httr::content(req,"text")
+  if (tmpdir!=FALSE){
+    tfile<-tempfile(tmpdir=tmpdir,fileext=".json")
+    print(paste0("Saving to ",tfile))
+    fileConn<-file(tfile)
+    writeLines(questionJSON, fileConn)
+    close(fileConn)
+  }
   questionData <- jsonlite::fromJSON(questionJSON)
 }
 
@@ -88,7 +94,7 @@ mb_url <- function(base_url, path) {
 }
 
 mb_req_error_processor <- function(req) {
-  if (req$status_code != 200) {
+  if (req$status_code < 200 || req$status_code >= 300) {
     stop(paste("Request failed:", req$url, " returned: ", req$status_code))
   }
 }
